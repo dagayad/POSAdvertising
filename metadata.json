@@ -1,0 +1,6 @@
+{
+  "name": "Connect Studio",
+  "description": "Mobile Advertising Business OS and POS for invoicing, customer dues, rate cards, expenses, and thermal receipts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
