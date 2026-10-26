@@ -167,22 +167,13 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = regNumber,
-                            onValueChange = { regNumber = it },
-                            label = { Text("Reg No (Optional)") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        OutlinedTextField(
-                            value = taxId,
-                            onValueChange = { taxId = it },
-                            label = { Text("Tax / VAT ID") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
+                    OutlinedTextField(
+                        value = regNumber,
+                        onValueChange = { regNumber = it },
+                        label = { Text("Business Registration No (Optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
                 }
             }
         }
@@ -238,25 +229,7 @@ fun SettingsScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = taxLabel,
-                            onValueChange = { taxLabel = it },
-                            label = { Text("Tax Label") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        OutlinedTextField(
-                            value = defaultTaxRateText,
-                            onValueChange = { defaultTaxRateText = it },
-                            label = { Text("Tax Rate (%)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -293,12 +266,12 @@ fun SettingsScreen(
                         email = email.trim(),
                         address = address.trim(),
                         regNumber = regNumber.trim(),
-                        taxId = taxId.trim(),
+                        taxId = "",
                         website = website.trim(),
                         currency = currency,
                         termsDays = termsDaysText.toIntOrNull() ?: 14,
-                        taxLabel = taxLabel.trim(),
-                        defaultTaxRate = defaultTaxRateText.toDoubleOrNull() ?: 0.0,
+                        taxLabel = "",
+                        defaultTaxRate = 0.0,
                         invoicePrefix = invoicePrefix.trim(),
                         nextInvoiceNumber = nextInvoiceNumText.toIntOrNull() ?: 1001,
                         receiptFooter = receiptFooter.trim(),

@@ -236,9 +236,6 @@ fun ThermalReceiptDialog(
                         if (invoice.discount > 0) {
                             ReceiptRow("Discount", "- ${formatMoney(invoice.discount, settings.currency)}")
                         }
-                        if (invoice.taxAmount > 0) {
-                            ReceiptRow("${invoice.taxLabel} (${invoice.taxRate}%)", formatMoney(invoice.taxAmount, settings.currency))
-                        }
                         if (invoice.extraCharges > 0) {
                             ReceiptRow("Extra charges", formatMoney(invoice.extraCharges, settings.currency))
                         }
@@ -440,7 +437,6 @@ private fun buildReceiptText(invoice: Invoice, payments: List<PaymentRecord>, se
     sb.appendLine("------------------------------------------")
     sb.appendLine("Subtotal:       ${formatMoney(invoice.subtotal, settings.currency)}")
     if (invoice.discount > 0) sb.appendLine("Discount:      -${formatMoney(invoice.discount, settings.currency)}")
-    if (invoice.taxAmount > 0) sb.appendLine("${invoice.taxLabel}:    ${formatMoney(invoice.taxAmount, settings.currency)}")
     if (invoice.extraCharges > 0) sb.appendLine("Extra charges:  ${formatMoney(invoice.extraCharges, settings.currency)}")
     sb.appendLine("TOTAL:          ${formatMoney(invoice.total, settings.currency)}")
     sb.appendLine("Paid to Date:   ${formatMoney(invoice.paidAmount, settings.currency)}")

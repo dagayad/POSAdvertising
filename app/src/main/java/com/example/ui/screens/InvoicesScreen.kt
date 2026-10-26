@@ -554,9 +554,8 @@ fun CreateInvoiceSheet(
     var customPriceText by remember { mutableStateOf("") }
     var customQtyText by remember { mutableStateOf("1") }
 
-    // Financial calculations
+    val currency = settings.currency
     var discountText by remember { mutableStateOf("0") }
-    var taxRateText by remember { mutableStateOf(settings.defaultTaxRate.toString()) }
     var extraText by remember { mutableStateOf("0") }
     var paidText by remember { mutableStateOf("0") }
     var selectedMethod by remember { mutableStateOf("Cash") }
@@ -565,11 +564,10 @@ fun CreateInvoiceSheet(
 
     val subtotal = lineItems.sumOf { it.lineTotal }
     val discount = discountText.toDoubleOrNull() ?: 0.0
-    val taxRate = taxRateText.toDoubleOrNull() ?: 0.0
     val extraCharges = extraText.toDoubleOrNull() ?: 0.0
-    val taxableBase = (subtotal - discount).coerceAtLeast(0.0)
-    val taxAmount = taxableBase * taxRate / 100.0
-    val grandTotal = (taxableBase + taxAmount + extraCharges).coerceAtLeast(0.0)
+    val grandTotal = ((subtotal - discount).coerceAtLeast(0.0) + extraCharges).coerceAtLeast(0.0)
+
+    val methods = listOf("Cash", "Bank transfer", "Card", "Online payment", "Cheque", "Other")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -578,353 +576,504 @@ fun CreateInvoiceSheet(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "New Commercial Invoice",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
+                Column {
+                    Text(
+                        text = "New Commercial Invoice",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Bill advertising campaigns, services & materials",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Customer Selector / Entry
-            Text("Select Existing Customer", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(6.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(customers) { c ->
-                    FilterChip(
-                        selected = selectedCustomer?.id == c.id,
-                        onClick = {
-                            selectedCustomer = c
-                            customerName = c.name
-                            customerPhone = c.phone
-                            customerEmail = c.email
-                            customerAddress = c.address
-                        },
-                        label = { Text(c.name, fontSize = 12.sp) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedTextField(
-                value = customerName,
-                onValueChange = { customerName = it },
-                label = { Text("Customer / Client Name *") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = customerPhone,
-                    onValueChange = { customerPhone = it },
-                    label = { Text("Phone / WhatsApp") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = customerEmail,
-                    onValueChange = { customerEmail = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Add Services from Catalogue
-            Text("Add Item from Rate Card", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(6.dp))
-
-            if (services.isNotEmpty()) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(services) { s ->
-                        FilterChip(
-                            selected = selectedServiceId == s.id,
-                            onClick = { selectedServiceId = s.id },
-                            label = { Text("${s.name} (${formatMoney(s.price, settings.currency)})", fontSize = 12.sp) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = serviceQtyText,
-                        onValueChange = { serviceQtyText = it },
-                        label = { Text("Qty") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.width(90.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Button(
-                        onClick = {
-                            val service = services.find { it.id == selectedServiceId }
-                            val qty = serviceQtyText.toDoubleOrNull() ?: 1.0
-                            if (service != null && qty > 0) {
-                                lineItems.add(
-                                    InvoiceLineItem(
-                                        serviceId = service.id,
-                                        name = service.name,
-                                        description = service.description,
-                                        qty = qty,
-                                        unitPrice = service.price,
-                                        type = service.type
-                                    )
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("+ Add to Invoice")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Custom Line Item entry
-            Text("Or Custom Service / Material", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = customName,
-                    onValueChange = { customName = it },
-                    label = { Text("Item Name") },
-                    modifier = Modifier.weight(1.4f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = customPriceText,
-                    onValueChange = { customPriceText = it },
-                    label = { Text("Price") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = customQtyText,
-                    onValueChange = { customQtyText = it },
-                    label = { Text("Qty") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.width(65.dp),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedButton(
-                onClick = {
-                    val price = customPriceText.toDoubleOrNull() ?: 0.0
-                    val qty = customQtyText.toDoubleOrNull() ?: 1.0
-                    if (customName.isNotBlank() && price > 0.0 && qty > 0.0) {
-                        lineItems.add(
-                            InvoiceLineItem(
-                                serviceId = null,
-                                name = customName.trim(),
-                                description = "Custom line item",
-                                qty = qty,
-                                unitPrice = price,
-                                type = "service"
-                            )
-                        )
-                        customName = ""
-                        customPriceText = ""
-                        customQtyText = "1"
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("+ Add Custom Line")
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Line items list
-            Text(
-                text = "Invoice Line Items (${lineItems.size})",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-            )
-
-            if (lineItems.isEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                ) {
-                    Text(
-                        text = "Add at least one service or material to calculate total.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            } else {
-                lineItems.forEachIndexed { index, item ->
-                    Card(
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    "${item.qty} × ${formatMoney(item.unitPrice, settings.currency)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Text(
-                                formatMoney(item.lineTotal, settings.currency),
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            IconButton(onClick = { lineItems.removeAt(index) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove", tint = DangerRose)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Calculations Section
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = discountText,
-                    onValueChange = { discountText = it },
-                    label = { Text("Discount ($settings.currency)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = taxRateText,
-                    onValueChange = { taxRateText = it },
-                    label = { Text("Tax Rate (%)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = extraText,
-                    onValueChange = { extraText = it },
-                    label = { Text("Extra Charges") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Upfront Payment
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = paidText,
-                    onValueChange = { paidText = it },
-                    label = { Text("Amount Received Now") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Project / PO Ref") },
-                    modifier = Modifier.weight(1.2f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Grand Total Card
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+            // Section 1: Customer Details Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Subtotal", style = MaterialTheme.typography.bodySmall)
-                        Text(formatMoney(subtotal, settings.currency), style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (discount > 0) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Discount", style = MaterialTheme.typography.bodySmall)
-                            Text("- ${formatMoney(discount, settings.currency)}", style = MaterialTheme.typography.bodySmall)
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "1. Customer Information",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    if (customers.isNotEmpty()) {
+                        Text(
+                            text = "Select from client directory:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(customers) { c ->
+                                FilterChip(
+                                    selected = selectedCustomer?.id == c.id,
+                                    onClick = {
+                                        selectedCustomer = c
+                                        customerName = c.name
+                                        customerPhone = c.phone
+                                        customerEmail = c.email
+                                        customerAddress = c.address
+                                    },
+                                    label = { Text(c.name, fontSize = 12.sp) }
+                                )
+                            }
                         }
                     }
-                    if (taxAmount > 0) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${settings.taxLabel} ($taxRate%)", style = MaterialTheme.typography.bodySmall)
-                            Text(formatMoney(taxAmount, settings.currency), style = MaterialTheme.typography.bodySmall)
+
+                    OutlinedTextField(
+                        value = customerName,
+                        onValueChange = {
+                            customerName = it
+                            if (selectedCustomer?.name != it) selectedCustomer = null
+                        },
+                        label = { Text("Client / Business Name *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = customerPhone,
+                        onValueChange = { customerPhone = it },
+                        label = { Text("Phone / WhatsApp") },
+                        placeholder = { Text("+94 77 123 4567") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = customerEmail,
+                        onValueChange = { customerEmail = it },
+                        label = { Text("Email Address") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = customerAddress,
+                        onValueChange = { customerAddress = it },
+                        label = { Text("Billing Address") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            }
+
+            // Section 2: Invoice Dates & Project Info Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "2. Invoice Dates & Project Reference",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = invoiceDate,
+                            onValueChange = { invoiceDate = it },
+                            label = { Text("Issue Date") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = dueDate,
+                            onValueChange = { dueDate = it },
+                            label = { Text("Due Date") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Campaign / Project Reference") },
+                        placeholder = { Text("e.g. Q4 Brand Launch / Storefront Display") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            }
+
+            // Section 3: Add Items / Services Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "3. Add Items & Services",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    // Option A: Rate Card Catalogue
+                    if (services.isNotEmpty()) {
+                        Text(
+                            text = "A. Select from Rate Card Catalogue:",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                        )
+
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(services) { s ->
+                                FilterChip(
+                                    selected = selectedServiceId == s.id,
+                                    onClick = { selectedServiceId = s.id },
+                                    label = { Text("${s.name} • ${formatMoney(s.price, currency)}", fontSize = 12.sp) }
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = serviceQtyText,
+                                onValueChange = { serviceQtyText = it },
+                                label = { Text("Quantity") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(0.8f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            Button(
+                                onClick = {
+                                    val service = services.find { it.id == selectedServiceId }
+                                    val qty = serviceQtyText.toDoubleOrNull() ?: 1.0
+                                    if (service != null && qty > 0) {
+                                        lineItems.add(
+                                            InvoiceLineItem(
+                                                serviceId = service.id,
+                                                name = service.name,
+                                                description = service.description,
+                                                qty = qty,
+                                                unitPrice = service.price,
+                                                type = service.type
+                                            )
+                                        )
+                                        errorMessage = ""
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .height(54.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Service")
+                            }
+                        }
+
+                        Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    }
+
+                    // Option B: Custom Item
+                    Text(
+                        text = "B. Or Add Custom Service / Item:",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+
+                    OutlinedTextField(
+                        value = customName,
+                        onValueChange = { customName = it },
+                        label = { Text("Custom Service or Item Name") },
+                        placeholder = { Text("e.g. 3D Acrylic Lettering Signboard") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = customPriceText,
+                            onValueChange = { customPriceText = it },
+                            label = { Text("Unit Price ($currency)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = customQtyText,
+                            onValueChange = { customQtyText = it },
+                            label = { Text("Quantity") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            val price = customPriceText.toDoubleOrNull() ?: 0.0
+                            val qty = customQtyText.toDoubleOrNull() ?: 1.0
+                            if (customName.isNotBlank() && price > 0.0 && qty > 0.0) {
+                                lineItems.add(
+                                    InvoiceLineItem(
+                                        serviceId = null,
+                                        name = customName.trim(),
+                                        description = "Custom service",
+                                        qty = qty,
+                                        unitPrice = price,
+                                        type = "service"
+                                    )
+                                )
+                                customName = ""
+                                customPriceText = ""
+                                customQtyText = "1"
+                                errorMessage = ""
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("+ Add Custom Line Item")
+                    }
+                }
+            }
+
+            // Section 4: Added Items List
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "4. Invoice Items (${lineItems.size})",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    if (lineItems.isEmpty()) {
+                        Text(
+                            text = "No items added yet. Please add at least one service or product item above.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
+                    } else {
+                        lineItems.forEachIndexed { index, item ->
+                            Card(
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            "${item.qty} × ${formatMoney(item.unitPrice, currency)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        formatMoney(item.lineTotal, currency),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    IconButton(onClick = { lineItems.removeAt(index) }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Remove", tint = DangerRose)
+                                    }
+                                }
+                            }
                         }
                     }
-                    Divider(modifier = Modifier.padding(vertical = 6.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(
-                            "GRAND TOTAL",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                }
+            }
+
+            // Section 5: Discounts & Extra Charges (No Tax / VAT)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "5. Discounts & Extra Charges",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = discountText,
+                            onValueChange = { discountText = it },
+                            label = { Text("Discount ($currency)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
                         )
-                        Text(
-                            formatMoney(grandTotal, settings.currency),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        OutlinedTextField(
+                            value = extraText,
+                            onValueChange = { extraText = it },
+                            label = { Text("Extra Fee / Delivery ($currency)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
+
+                    // Grand Total Summary Box
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Items Subtotal", style = MaterialTheme.typography.bodySmall)
+                                Text(formatMoney(subtotal, currency), style = MaterialTheme.typography.bodySmall)
+                            }
+                            if (discount > 0) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Discount Applied", style = MaterialTheme.typography.bodySmall)
+                                    Text("- ${formatMoney(discount, currency)}", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            if (extraCharges > 0) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Extra Charges", style = MaterialTheme.typography.bodySmall)
+                                    Text(formatMoney(extraCharges, currency), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 6.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(
+                                    "GRAND TOTAL",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                )
+                                Text(
+                                    formatMoney(grandTotal, currency),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Section 6: Payment & Terms
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "6. Upfront Payment & Terms",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    OutlinedTextField(
+                        value = paidText,
+                        onValueChange = { paidText = it },
+                        label = { Text("Advance / Paid Now ($currency)") },
+                        placeholder = { Text("0.00") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Text(
+                        text = "Payment Method:",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(methods) { method ->
+                            FilterChip(
+                                selected = selectedMethod == method,
+                                onClick = { selectedMethod = method },
+                                label = { Text(method, fontSize = 12.sp) }
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Terms & Conditions / Note") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        minLines = 2
+                    )
                 }
             }
 
             if (errorMessage.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+            // Final Submit Button
             Button(
                 onClick = {
                     if (customerName.isBlank()) {
@@ -932,7 +1081,7 @@ fun CreateInvoiceSheet(
                         return@Button
                     }
                     if (lineItems.isEmpty()) {
-                        errorMessage = "Add at least one line item."
+                        errorMessage = "Please add at least one line item to the invoice."
                         return@Button
                     }
 
@@ -947,20 +1096,20 @@ fun CreateInvoiceSheet(
                         customerPhone = customerPhone.trim(),
                         customerEmail = customerEmail.trim(),
                         customerAddress = customerAddress.trim(),
-                        date = invoiceDate,
-                        dueDate = dueDate,
+                        date = invoiceDate.trim(),
+                        dueDate = dueDate.trim(),
                         description = description.trim(),
                         items = lineItems.toList(),
                         subtotal = subtotal,
                         discount = discount,
-                        taxRate = taxRate,
-                        taxAmount = taxAmount,
-                        taxLabel = settings.taxLabel,
+                        taxRate = 0.0,
+                        taxAmount = 0.0,
+                        taxLabel = "",
                         extraCharges = extraCharges,
                         total = grandTotal,
                         paidAmount = paidAmount.coerceAtMost(grandTotal),
                         paymentMethod = selectedMethod,
-                        notes = notes,
+                        notes = notes.trim(),
                         status = if (grandTotal - paidAmount < 0.01) "Paid" else "Issued"
                     )
 
@@ -968,17 +1117,19 @@ fun CreateInvoiceSheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(54.dp)
                     .testTag("submit_create_invoice_btn"),
                 shape = RoundedCornerShape(14.dp)
             ) {
+                Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Save & Generate Receipt",
+                    text = "Save & Generate Commercial Receipt",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                 )
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
