@@ -119,9 +119,9 @@ fun MetricCard(
             Text(
                 text = amount,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.5).sp
+                    letterSpacing = (-0.3).sp
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,

@@ -1,5 +1,6 @@
 package com.example.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
@@ -55,6 +56,8 @@ data class InvoiceEntity(
     val notes: String,
     val status: String,
     val createdAt: Long,
+    // Must match the default used in MIGRATION_1_2, otherwise Room's schema check fails.
+    @ColumnInfo(defaultValue = "0.0")
     val dollarRate: Double = 0.0
 )
 

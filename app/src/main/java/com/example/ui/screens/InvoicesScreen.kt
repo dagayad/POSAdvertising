@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -328,7 +330,7 @@ private fun InvoiceItemCard(
                         onClick = onOpenPayment,
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.height(36.dp)
+                        modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                     ) {
                         Icon(Icons.Default.Payments, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -341,7 +343,7 @@ private fun InvoiceItemCard(
                     onClick = onOpenReceipt,
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                 ) {
                     Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -419,7 +421,7 @@ fun RecordPaymentDialog(
             Column(
                 modifier = Modifier
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                    .imePadding().verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -633,7 +635,7 @@ fun CreateInvoiceSheet(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .imePadding().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Spacer(modifier = Modifier.height(4.dp))

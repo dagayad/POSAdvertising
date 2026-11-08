@@ -14,7 +14,9 @@ data class BusinessSettings(
     val taxLabel: String = "Tax / VAT",
     val defaultTaxRate: Double = 0.0,
     val invoicePrefix: String = "CON",
-    val nextInvoiceNumber: Int = 1001,
+    // Seeded invoices use CON-01001..CON-01003, so the next number must start at 1004.
+    // Keep this in sync with the fallback in AppRepository.settings.
+    val nextInvoiceNumber: Int = 1004,
     val termsText: String = "Please make payment by the due date shown. Contact us if you have any questions about this invoice.",
     val receiptFooter: String = "Con-nect POS by Sio Creations (WhatsApp) +94 75 510 3772",
     val bankName: String = "",

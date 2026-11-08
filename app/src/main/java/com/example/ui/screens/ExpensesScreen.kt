@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -266,7 +267,7 @@ fun AddExpenseDialog(
             Column(
                 modifier = Modifier
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                    .imePadding().verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

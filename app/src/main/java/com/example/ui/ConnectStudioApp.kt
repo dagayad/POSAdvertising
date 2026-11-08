@@ -7,13 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
@@ -147,9 +144,7 @@ fun ConnectStudioApp(
         },
         bottomBar = {
             NavigationBar(
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .testTag("main_bottom_nav"),
+                modifier = Modifier.testTag("main_bottom_nav"),
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp
             ) {
@@ -174,7 +169,7 @@ fun ConnectStudioApp(
                                 modifier = Modifier.size(24.dp)
                             )
                         },
-                        alwaysShowLabel = false,
+                        alwaysShowLabel = true,
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,

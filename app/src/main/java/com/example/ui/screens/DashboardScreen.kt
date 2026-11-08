@@ -3,7 +3,9 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -304,6 +306,7 @@ fun DashboardScreen(
                     icon = Icons.Default.Schedule,
                     label = "Dues List",
                     onClick = { onNavigateTab(NavigationTab.CUSTOMERS) },
+                    // Dues are tracked per client, so this opens the Clients tab.
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -448,22 +451,22 @@ private fun DashboardInvoiceCard(
                         Button(
                             onClick = onOpenPayment,
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                         ) {
-                            Text("Pay", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Pay", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                         }
                     }
 
                     OutlinedButton(
                         onClick = onOpenReceipt,
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        modifier = Modifier.height(34.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                     ) {
-                        Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Receipt", fontSize = 12.sp)
+                        Text("Receipt", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }

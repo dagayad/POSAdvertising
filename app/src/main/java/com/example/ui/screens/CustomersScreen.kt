@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -152,7 +154,7 @@ fun CustomersScreen(
                                 onClick = { onOpenPayment(inv) },
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                modifier = Modifier.height(34.dp)
+                                modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                             ) {
                                 Icon(Icons.Default.Payments, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -364,7 +366,7 @@ private fun CustomerCard(
                     onClick = onStatement,
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.height(34.dp)
+                    modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                 ) {
                     Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -397,7 +399,7 @@ fun AddEditCustomerDialog(
             Column(
                 modifier = Modifier
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                    .imePadding().verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -531,7 +533,7 @@ fun CustomerStatementDialog(
             Column(
                 modifier = Modifier
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
+                    .imePadding().verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

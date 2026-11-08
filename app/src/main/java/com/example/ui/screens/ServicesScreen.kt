@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -126,7 +128,7 @@ fun ServicesScreen(
                     onClick = onOpenManageCategories,
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.defaultMinSize(minHeight = 40.dp)
                 ) {
                     Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -317,7 +319,7 @@ fun AddEditServiceDialog(
             Column(
                 modifier = Modifier
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                    .imePadding().verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -476,7 +478,7 @@ fun ManageCategoriesDialog(
             Column(
                 modifier = Modifier
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                    .imePadding().verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
