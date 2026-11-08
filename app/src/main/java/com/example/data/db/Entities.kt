@@ -54,7 +54,8 @@ data class InvoiceEntity(
     val paymentMethod: String,
     val notes: String,
     val status: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val dollarRate: Double = 0.0
 )
 
 @Entity(tableName = "payments")

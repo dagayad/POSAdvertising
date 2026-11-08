@@ -154,12 +154,12 @@ fun ConnectStudioApp(
                 tonalElevation = 2.dp
             ) {
                 val navItems = listOf(
-                    Triple(NavigationTab.OVERVIEW, "Overview", Icons.Default.Dashboard),
-                    Triple(NavigationTab.INVOICES, "Invoices", Icons.Default.Receipt),
-                    Triple(NavigationTab.SERVICES, "Services", Icons.Default.Category),
-                    Triple(NavigationTab.CUSTOMERS, "Customers", Icons.Default.People),
-                    Triple(NavigationTab.EXPENSES, "Expenses", Icons.Default.MoneyOff),
-                    Triple(NavigationTab.SETTINGS, "Settings", Icons.Default.Settings)
+                    Triple(NavigationTab.OVERVIEW, NavigationTab.OVERVIEW.label, Icons.Default.Dashboard),
+                    Triple(NavigationTab.INVOICES, NavigationTab.INVOICES.label, Icons.Default.Receipt),
+                    Triple(NavigationTab.SERVICES, NavigationTab.SERVICES.label, Icons.Default.Category),
+                    Triple(NavigationTab.CUSTOMERS, NavigationTab.CUSTOMERS.label, Icons.Default.People),
+                    Triple(NavigationTab.EXPENSES, NavigationTab.EXPENSES.label, Icons.Default.MoneyOff),
+                    Triple(NavigationTab.SETTINGS, NavigationTab.SETTINGS.label, Icons.Default.Settings)
                 )
 
                 navItems.forEach { (tab, label, icon) ->
@@ -167,8 +167,14 @@ fun ConnectStudioApp(
                     NavigationBarItem(
                         selected = selected,
                         onClick = { viewModel.setTab(tab) },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label, fontSize = 10.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+                        icon = {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        alwaysShowLabel = false,
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,

@@ -16,7 +16,12 @@ data class BusinessSettings(
     val invoicePrefix: String = "CON",
     val nextInvoiceNumber: Int = 1001,
     val termsText: String = "Please make payment by the due date shown. Contact us if you have any questions about this invoice.",
-    val receiptFooter: String = "Con-nect POS by Sio Creations (WhatsApp) +94 75 510 3772"
+    val receiptFooter: String = "Con-nect POS by Sio Creations (WhatsApp) +94 75 510 3772",
+    val bankName: String = "",
+    val accountName: String = "",
+    val accountNumber: String = "",
+    val branchName: String = "",
+    val paymentInstructions: String = ""
 )
 
 data class Customer(
@@ -74,11 +79,14 @@ data class Invoice(
     val paymentMethod: String = "Cash",
     val notes: String = "",
     val status: String = "Issued",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val dollarRate: Double = 0.0
 ) {
     val dueAmount: Double get() = (total - paidAmount).coerceAtLeast(0.0)
     val isPaid: Boolean get() = dueAmount < 0.01
     val isPartial: Boolean get() = paidAmount > 0.01 && !isPaid
+    val hasDollarRate: Boolean get() = dollarRate > 0.0
+    val totalInUsd: Double get() = if (hasDollarRate) total / dollarRate else 0.0
 }
 
 data class PaymentRecord(
@@ -114,10 +122,11 @@ data class DashboardMetrics(
 )
 
 enum class NavigationTab(val label: String) {
-    OVERVIEW("Overview"),
-    INVOICES("Invoices"),
-    SERVICES("Services"),
-    CUSTOMERS("Customers"),
-    EXPENSES("Expenses"),
-    SETTINGS("Settings")
+    OVERVIEW("Home"),
+    INVOICES("Bills"),
+    SERVICES("Rates"),
+    CUSTOMERS("Clients"),
+    EXPENSES("Costs"),
+    SETTINGS("Setup")
 }
+

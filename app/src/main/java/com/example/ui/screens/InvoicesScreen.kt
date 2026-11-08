@@ -22,6 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
@@ -54,12 +58,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.BusinessSettings
 import com.example.data.model.Customer
 import com.example.data.model.Invoice
@@ -274,6 +280,26 @@ private fun InvoiceItemCard(
                         text = formatMoney(invoice.dueAmount, currency),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = if (invoice.dueAmount > 0.01) DangerRose else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            if (invoice.hasDollarRate) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Avg USD Rate: 1 USD ≈ ${formatMoney(invoice.dollarRate, currency)}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "≈ $${String.format(Locale.US, "%.2f", invoice.totalInUsd)} USD",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -529,7 +555,7 @@ fun CreateInvoiceSheet(
     onDismiss: () -> Unit,
     onSubmit: (Invoice) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
 
     var selectedCustomer by remember { mutableStateOf<Customer?>(customers.firstOrNull()) }
@@ -557,10 +583,26 @@ fun CreateInvoiceSheet(
     val currency = settings.currency
     var discountText by remember { mutableStateOf("0") }
     var extraText by remember { mutableStateOf("0") }
+    var dollarRateText by remember { mutableStateOf("") }
     var paidText by remember { mutableStateOf("0") }
     var selectedMethod by remember { mutableStateOf("Cash") }
 
     var errorMessage by remember { mutableStateOf("") }
+    var itemAddedBannerText by remember { mutableStateOf<String?>(null) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+
+    fun requestClose() {
+        if (lineItems.isNotEmpty() || customName.isNotBlank() || description.isNotBlank()) {
+            showDiscardConfirm = true
+        } else {
+            onDismiss()
+        }
+    }
+
+    // Intercept hardware and gesture back to prevent accidental loss
+    BackHandler {
+        requestClose()
+    }
 
     val subtotal = lineItems.sumOf { it.lineTotal }
     val discount = discountText.toDoubleOrNull() ?: 0.0
@@ -569,44 +611,63 @@ fun CreateInvoiceSheet(
 
     val methods = listOf("Cash", "Bank transfer", "Card", "Online payment", "Cheque", "Other")
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
+    // Full screen dialog that NEVER dismisses on accidental outside touch/mistouch
+    Dialog(
+        onDismissRequest = {
+            // MISTOUCH PREVENTION: Do NOT dismiss on outside clicks
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = false,
+            dismissOnBackPress = false
+        )
     ) {
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(top = 18.dp),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column {
-                    Text(
-                        text = "New Commercial Invoice",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Bill advertising campaigns, services & materials",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-            }
+                Spacer(modifier = Modifier.height(4.dp))
 
-            // Section 1: Customer Details Card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "New Commercial Invoice",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Bill campaigns, services & materials • Protected draft",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(
+                        onClick = { requestClose() },
+                        modifier = Modifier.testTag("close_invoice_sheet_btn")
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Close invoice window")
+                    }
+                }
+
+                // Section 1: Customer Details Card
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -792,6 +853,11 @@ fun CreateInvoiceSheet(
                                                 type = service.type
                                             )
                                         )
+                                        val countDisplay = if (qty % 1.0 == 0.0) qty.toInt().toString() else qty.toString()
+                                        val notificationText = "Added '${service.name}' ($countDisplay × ${formatMoney(service.price, currency)})"
+                                        itemAddedBannerText = notificationText
+                                        Toast.makeText(context, "Added: ${service.name}", Toast.LENGTH_SHORT).show()
+                                        serviceQtyText = "1"
                                         errorMessage = ""
                                     }
                                 },
@@ -854,20 +920,29 @@ fun CreateInvoiceSheet(
                             val price = customPriceText.toDoubleOrNull() ?: 0.0
                             val qty = customQtyText.toDoubleOrNull() ?: 1.0
                             if (customName.isNotBlank() && price > 0.0 && qty > 0.0) {
+                                val itemName = customName.trim()
                                 lineItems.add(
                                     InvoiceLineItem(
                                         serviceId = null,
-                                        name = customName.trim(),
+                                        name = itemName,
                                         description = "Custom service",
                                         qty = qty,
                                         unitPrice = price,
                                         type = "service"
                                     )
                                 )
+                                val countDisplay = if (qty % 1.0 == 0.0) qty.toInt().toString() else qty.toString()
+                                val notificationText = "Added '$itemName' ($countDisplay × ${formatMoney(price, currency)})"
+                                itemAddedBannerText = notificationText
+                                Toast.makeText(context, "Added: $itemName", Toast.LENGTH_SHORT).show()
                                 customName = ""
                                 customPriceText = ""
                                 customQtyText = "1"
                                 errorMessage = ""
+                            } else if (customName.isBlank()) {
+                                errorMessage = "Please enter custom item name."
+                            } else if (price <= 0.0) {
+                                errorMessage = "Please enter a valid unit price."
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -878,6 +953,52 @@ fun CreateInvoiceSheet(
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("+ Add Custom Line Item")
+                    }
+                }
+            }
+
+            // In-Sheet "Item Added" Notification Banner
+            itemAddedBannerText?.let { banner ->
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Item Added to Bill ✓",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = banner,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        IconButton(
+                            onClick = { itemAddedBannerText = null },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Dismiss notification",
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
             }
@@ -976,6 +1097,31 @@ fun CreateInvoiceSheet(
                         )
                     }
 
+                    // Optional Dollar Rate Field
+                    OutlinedTextField(
+                        value = dollarRateText,
+                        onValueChange = { dollarRateText = it },
+                        label = { Text("Average Dollar Rate (USD) - Optional") },
+                        placeholder = { Text("e.g. 305.00 (Leave blank if not needed)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        supportingText = {
+                            val rate = dollarRateText.toDoubleOrNull() ?: 0.0
+                            if (rate > 0.0) {
+                                val usdAmount = grandTotal / rate
+                                Text(
+                                    "1 USD ≈ $dollarRateText $currency  •  Invoice Total ≈ $${String.format(Locale.US, "%.2f", usdAmount)} USD",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            } else {
+                                Text("Optional: Leave blank if you don't want to show dollar rate on the invoice.")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
                     // Grand Total Summary Box
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -1009,6 +1155,23 @@ fun CreateInvoiceSheet(
                                     formatMoney(grandTotal, currency),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
                                 )
+                            }
+
+                            val parsedDollarRate = dollarRateText.toDoubleOrNull() ?: 0.0
+                            if (parsedDollarRate > 0.0) {
+                                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(
+                                        "USD Reference (1 USD ≈ $dollarRateText $currency)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                    )
+                                    Text(
+                                        "≈ $${String.format(Locale.US, "%.2f", grandTotal / parsedDollarRate)} USD",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
                             }
                         }
                     }
@@ -1110,7 +1273,8 @@ fun CreateInvoiceSheet(
                         paidAmount = paidAmount.coerceAtMost(grandTotal),
                         paymentMethod = selectedMethod,
                         notes = notes.trim(),
-                        status = if (grandTotal - paidAmount < 0.01) "Paid" else "Issued"
+                        status = if (grandTotal - paidAmount < 0.01) "Paid" else "Issued",
+                        dollarRate = dollarRateText.toDoubleOrNull() ?: 0.0
                     )
 
                     onSubmit(newInvoice)
@@ -1130,6 +1294,49 @@ fun CreateInvoiceSheet(
             }
 
             Spacer(modifier = Modifier.height(48.dp))
+        }
+    }
+}
+
+    if (showDiscardConfirm) {
+        Dialog(onDismissRequest = { showDiscardConfirm = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Discard Invoice Draft?",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "You have unsaved invoice items and information. Are you sure you want to discard this draft and exit?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showDiscardConfirm = false }) {
+                            Text("Continue Editing")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                showDiscardConfirm = false
+                                onDismiss()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Discard Draft")
+                        }
+                    }
+                }
+            }
         }
     }
 }

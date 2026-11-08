@@ -2,8 +2,10 @@ package com.example.ui.components
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +20,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +37,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,6 +57,9 @@ import com.example.data.model.BusinessSettings
 import com.example.data.model.Invoice
 import com.example.data.model.PaymentRecord
 import com.example.ui.theme.BrandIndigo
+import com.example.util.PdfPaperSize
+import com.example.util.PdfReceiptGenerator
+import java.util.Locale
 
 @Composable
 fun ThermalReceiptDialog(
@@ -56,6 +69,7 @@ fun ThermalReceiptDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    var selectedSize by remember { mutableStateOf(PdfPaperSize.A4) }
     val receiptText = buildReceiptText(invoice, payments, settings)
 
     Dialog(
@@ -64,8 +78,8 @@ fun ThermalReceiptDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .padding(vertical = 24.dp),
+                .fillMaxWidth(0.96f)
+                .padding(vertical = 16.dp),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -81,16 +95,103 @@ fun ThermalReceiptDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Thermal Receipt Preview",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Column {
+                        Text(
+                            text = "Receipt & Invoice PDF",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "Select international standard size to download",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Standard Paper & POS Size Selector Chips
+                Text(
+                    text = "INTERNATIONAL STANDARD SIZES:",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PdfPaperSize.values().forEach { sizeOption ->
+                        val isSelected = selectedSize == sizeOption
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedSize = sizeOption },
+                            label = {
+                                Column(modifier = Modifier.padding(vertical = 2.dp)) {
+                                    Text(
+                                        text = sizeOption.title,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        text = sizeOption.dimensionsLabel,
+                                        fontSize = 10.sp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            leadingIcon = if (isSelected) {
+                                {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(10.dp))
+
+                // Format Information Bar
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Size: ${selectedSize.title} (${selectedSize.dimensionsLabel})",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = if (selectedSize.isRoll) "Continuous Roll" else "ISO Sheet",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Realistic Paper Receipt View
                 Box(
@@ -272,6 +373,14 @@ fun ThermalReceiptDialog(
                             textColor = if (invoice.dueAmount > 0.01) Color(0xFFBE123C) else Color(0xFF15803D)
                         )
 
+                        if (invoice.hasDollarRate) {
+                            ReceiptRow(
+                                label = "Avg USD Rate:",
+                                value = "1$ ≈ ${formatMoney(invoice.dollarRate, settings.currency)} (≈ $${String.format(Locale.US, "%.2f", invoice.totalInUsd)})",
+                                textColor = Color(0xFF64748B)
+                            )
+                        }
+
                         ReceiptDashedDivider()
 
                         // Status & Payments
@@ -309,6 +418,31 @@ fun ThermalReceiptDialog(
                             }
                         }
 
+                        if (settings.bankName.isNotBlank() || settings.accountNumber.isNotBlank()) {
+                            ReceiptDashedDivider()
+                            Text(
+                                text = "BANK TRANSFER DETAILS",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp
+                                ),
+                                color = Color(0xFF1E293B)
+                            )
+                            if (settings.bankName.isNotBlank()) {
+                                ReceiptRow("Bank:", settings.bankName)
+                            }
+                            if (settings.accountNumber.isNotBlank()) {
+                                ReceiptRow("A/C No:", settings.accountNumber, isBold = true)
+                            }
+                            if (settings.accountName.isNotBlank()) {
+                                ReceiptRow("A/C Name:", settings.accountName)
+                            }
+                            if (settings.branchName.isNotBlank()) {
+                                ReceiptRow("Branch:", settings.branchName)
+                            }
+                        }
+
                         ReceiptDashedDivider()
 
                         Text(
@@ -335,34 +469,127 @@ fun ThermalReceiptDialog(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Action Buttons
-                Row(
+                // Action Buttons for International Standard PDF
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // Primary: Download PDF in selected standard size
                     Button(
-                        onClick = { shareReceipt(context, receiptText) },
+                        onClick = {
+                            try {
+                                val pdfFile = PdfReceiptGenerator.generatePdfFile(
+                                    context = context,
+                                    invoice = invoice,
+                                    payments = payments,
+                                    settings = settings,
+                                    paperSize = selectedSize
+                                )
+                                val savedUri = PdfReceiptGenerator.downloadToDownloadsFolder(
+                                    context = context,
+                                    pdfFile = pdfFile,
+                                    invoiceNumber = invoice.number,
+                                    paperSize = selectedSize
+                                )
+                                if (savedUri != null) {
+                                    Toast.makeText(
+                                        context,
+                                        "Downloaded ${selectedSize.title} PDF to Downloads!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    PdfReceiptGenerator.openPdf(context, pdfFile)
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Generated ${selectedSize.title} PDF!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    PdfReceiptGenerator.openPdf(context, pdfFile)
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    "Error generating PDF: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
                         modifier = Modifier
-                            .weight(1f)
-                            .testTag("share_receipt_button"),
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("download_pdf_button"),
                         colors = ButtonDefaults.buttonColors(containerColor = BrandIndigo),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Share via App")
+                        Icon(
+                            Icons.Default.ArrowDownward,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Download ${selectedSize.title} PDF",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
                     }
 
-                    OutlinedButton(
-                        onClick = { shareReceipt(context, receiptText) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("print_receipt_button"),
-                        shape = RoundedCornerShape(12.dp)
+                    // Secondary Row: Share PDF and Open/View PDF
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Print / PDF")
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    val pdfFile = PdfReceiptGenerator.generatePdfFile(
+                                        context = context,
+                                        invoice = invoice,
+                                        payments = payments,
+                                        settings = settings,
+                                        paperSize = selectedSize
+                                    )
+                                    PdfReceiptGenerator.sharePdf(context, pdfFile)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                                .testTag("share_pdf_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Share PDF")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    val pdfFile = PdfReceiptGenerator.generatePdfFile(
+                                        context = context,
+                                        invoice = invoice,
+                                        payments = payments,
+                                        settings = settings,
+                                        paperSize = selectedSize
+                                    )
+                                    PdfReceiptGenerator.openPdf(context, pdfFile)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                                .testTag("print_receipt_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Open / Print")
+                        }
                     }
                 }
             }
@@ -441,6 +668,9 @@ private fun buildReceiptText(invoice: Invoice, payments: List<PaymentRecord>, se
     sb.appendLine("TOTAL:          ${formatMoney(invoice.total, settings.currency)}")
     sb.appendLine("Paid to Date:   ${formatMoney(invoice.paidAmount, settings.currency)}")
     sb.appendLine("BALANCE DUE:    ${formatMoney(invoice.dueAmount, settings.currency)}")
+    if (invoice.hasDollarRate) {
+        sb.appendLine("USD Rate (Ref): 1 USD ≈ ${formatMoney(invoice.dollarRate, settings.currency)} (≈ $${String.format(Locale.US, "%.2f", invoice.totalInUsd)} USD)")
+    }
     sb.appendLine("------------------------------------------")
     sb.appendLine("STATUS: ${if (invoice.isPaid) "PAID IN FULL" else if (invoice.isPartial) "PARTIALLY PAID" else "UNPAID"}")
     if (payments.isNotEmpty()) {
@@ -448,6 +678,14 @@ private fun buildReceiptText(invoice: Invoice, payments: List<PaymentRecord>, se
         payments.forEach {
             sb.appendLine("  ${it.date} [${it.method}]: ${formatMoney(it.amount, settings.currency)}")
         }
+    }
+    if (settings.bankName.isNotBlank() || settings.accountNumber.isNotBlank()) {
+        sb.appendLine("------------------------------------------")
+        sb.appendLine("BANK TRANSFER DETAILS:")
+        if (settings.bankName.isNotBlank()) sb.appendLine("Bank: ${settings.bankName}")
+        if (settings.accountNumber.isNotBlank()) sb.appendLine("A/C No: ${settings.accountNumber}")
+        if (settings.accountName.isNotBlank()) sb.appendLine("A/C Name: ${settings.accountName}")
+        if (settings.branchName.isNotBlank()) sb.appendLine("Branch: ${settings.branchName}")
     }
     sb.appendLine("==========================================")
     sb.appendLine(settings.receiptFooter)

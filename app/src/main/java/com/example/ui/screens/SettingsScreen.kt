@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Save
@@ -80,6 +81,12 @@ fun SettingsScreen(
     var nextInvoiceNumText by remember(settings) { mutableStateOf(settings.nextInvoiceNumber.toString()) }
     var receiptFooter by remember(settings) { mutableStateOf(settings.receiptFooter) }
     var termsText by remember(settings) { mutableStateOf(settings.termsText) }
+
+    var bankName by remember(settings) { mutableStateOf(settings.bankName) }
+    var accountName by remember(settings) { mutableStateOf(settings.accountName) }
+    var accountNumber by remember(settings) { mutableStateOf(settings.accountNumber) }
+    var branchName by remember(settings) { mutableStateOf(settings.branchName) }
+    var paymentInstructions by remember(settings) { mutableStateOf(settings.paymentInstructions) }
 
     var showClearDialog by remember { mutableStateOf(false) }
 
@@ -255,6 +262,99 @@ fun SettingsScreen(
             }
         }
 
+        // Company Payment Receiving Details (Bank Account) Card
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Company Payment Receiving Details",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "Bank account shown on invoices & bills for client transfers",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    OutlinedTextField(
+                        value = bankName,
+                        onValueChange = { bankName = it },
+                        label = { Text("Bank Name") },
+                        placeholder = { Text("e.g. Commercial Bank of Ceylon / Sampath Bank / BOC") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = accountName,
+                            onValueChange = { accountName = it },
+                            label = { Text("Account Holder / Name") },
+                            placeholder = { Text("e.g. Con-nect Advertising") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = accountNumber,
+                            onValueChange = { accountNumber = it },
+                            label = { Text("Account Number") },
+                            placeholder = { Text("e.g. 8001234567") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = branchName,
+                        onValueChange = { branchName = it },
+                        label = { Text("Branch / Swift / Code") },
+                        placeholder = { Text("e.g. Kollupitiya / Colombo City Branch") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = paymentInstructions,
+                        onValueChange = { paymentInstructions = it },
+                        label = { Text("Payment Instructions for Clients") },
+                        placeholder = { Text("e.g. Please send bank transfer receipt via WhatsApp (+94 75 510 3772) with invoice number.") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        minLines = 2
+                    )
+                }
+            }
+        }
+
         // Save Settings Button
         item {
             Button(
@@ -275,7 +375,12 @@ fun SettingsScreen(
                         invoicePrefix = invoicePrefix.trim(),
                         nextInvoiceNumber = nextInvoiceNumText.toIntOrNull() ?: 1001,
                         receiptFooter = receiptFooter.trim(),
-                        termsText = termsText.trim()
+                        termsText = termsText.trim(),
+                        bankName = bankName.trim(),
+                        accountName = accountName.trim(),
+                        accountNumber = accountNumber.trim(),
+                        branchName = branchName.trim(),
+                        paymentInstructions = paymentInstructions.trim()
                     )
                     onSaveSettings(updated)
                     Toast.makeText(context, "Settings saved successfully", Toast.LENGTH_SHORT).show()

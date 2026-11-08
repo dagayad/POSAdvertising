@@ -79,7 +79,8 @@ class AppRepository(private val dao: AppDao) {
                 paymentMethod = it.paymentMethod,
                 notes = it.notes,
                 status = it.status,
-                createdAt = it.createdAt
+                createdAt = it.createdAt,
+                dollarRate = it.dollarRate
             )
         }
     }
@@ -137,7 +138,12 @@ class AppRepository(private val dao: AppDao) {
             termsText = map["termsText"]
                 ?: "Please make payment by the due date shown. Contact us if you have any questions about this invoice.",
             receiptFooter = map["receiptFooter"]
-                ?: "Con-nect POS by Sio Creations (WhatsApp) +94 75 510 3772"
+                ?: "Con-nect POS by Sio Creations (WhatsApp) +94 75 510 3772",
+            bankName = map["bankName"] ?: "",
+            accountName = map["accountName"] ?: "",
+            accountNumber = map["accountNumber"] ?: "",
+            branchName = map["branchName"] ?: "",
+            paymentInstructions = map["paymentInstructions"] ?: ""
         )
     }
 
@@ -235,7 +241,8 @@ class AppRepository(private val dao: AppDao) {
                 paymentMethod = finalInvoice.paymentMethod,
                 notes = finalInvoice.notes,
                 status = finalInvoice.status,
-                createdAt = finalInvoice.createdAt
+                createdAt = finalInvoice.createdAt,
+                dollarRate = finalInvoice.dollarRate
             )
         )
 
@@ -317,7 +324,8 @@ class AppRepository(private val dao: AppDao) {
                 paymentMethod = method,
                 notes = invoice.notes,
                 status = if (invoice.total - newPaid < 0.01) "Paid" else invoice.status,
-                createdAt = invoice.createdAt
+                createdAt = invoice.createdAt,
+                dollarRate = invoice.dollarRate
             )
         )
     }
@@ -363,6 +371,11 @@ class AppRepository(private val dao: AppDao) {
         dao.setSetting(SettingEntity("nextInvoiceNumber", settings.nextInvoiceNumber.toString()))
         dao.setSetting(SettingEntity("termsText", settings.termsText))
         dao.setSetting(SettingEntity("receiptFooter", settings.receiptFooter))
+        dao.setSetting(SettingEntity("bankName", settings.bankName))
+        dao.setSetting(SettingEntity("accountName", settings.accountName))
+        dao.setSetting(SettingEntity("accountNumber", settings.accountNumber))
+        dao.setSetting(SettingEntity("branchName", settings.branchName))
+        dao.setSetting(SettingEntity("paymentInstructions", settings.paymentInstructions))
     }
 
     suspend fun clearTransactions() {
